@@ -1,0 +1,49 @@
+version: "3"
+services:
+  nginx:
+    build:
+      context: ../../document-management-app/
+      dockerfile: Dockerfile
+    ports:
+      - "64203:80"
+
+  document_mangement_service:
+    restart: always
+    build:
+      context: ../document_management_service/
+      dockerfile: Dockerfile
+    ports:
+      - "8094:8094"
+    depends_on:
+      - mariadb
+    healthcheck:
+      test: [ "CMD-SHELL", "nc -z mariadb 3306 || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      SPRING_DATABASE_URL: "jdbc:mariadb://mariadb:3306/document_management"
+  metadata_extraction_service:
+    build: metadataExtractionService/
+    ports:
+      - "8093:8093"
+  office_indexing_service:
+    build: officeIndexingService/
+    ports:
+      - "8091:8091"
+  pdf_indexing_service:
+    build: pdfIndexingService/
+    ports:
+      - "8092:8092"
+  mariadb:
+    image: mariadb:latest
+    restart: always
+    environment:
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: document_management
+      MYSQL_USER: vickyTim
+      MYSQL_PASSWORD: vickyTim
+    ports:
+      - "3306:3306"

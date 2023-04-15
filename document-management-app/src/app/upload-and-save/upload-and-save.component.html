@@ -1,0 +1,290 @@
+<nav class="navbar px-5 py-4" style="background-color: #abcbd5">
+  <div class="row d-flex justify-content-between"></div>
+  <div class="col-6">
+    <!-- Navbar content -->
+    <h2 class="pl" style="font-weight: bold">Document Management</h2>
+  </div>
+
+  <div class="container-fluid col-6">
+    <form class="d-flex" role="search" (submit)="onSearch()">
+      <input
+        class="form-control me-2"
+        type="text"
+        placeholder="Search"
+        aria-label="Search"
+        name="searchedKeyword"
+        [(ngModel)]="searchedKeyword"
+        required
+      />
+      <select
+        class="form-select form-select-sm"
+        type="text"
+        aria-label="form-select-sm example"
+        name="textOrTag"
+        [(ngModel)]="textOrTag"
+        required
+      >
+        <option value="text" selected>Text</option>
+        <option value="tag">Tags</option>
+      </select>
+      <button class="btn btn-success" type="submit">Search</button>
+    </form>
+  </div>
+</nav>
+
+<div *ngIf="uploadSuccess" class="alert alert-success" role="alert">
+  <p>
+    <em
+      >Document {{ uploadResponsefilename }} of filesize:
+      {{ uploadResponseFilesize }} KB uploaded successfully!</em
+    >
+  </p>
+</div>
+<div *ngIf="uploadError" class="alert alert-danger" role="alert">
+  <p>
+    <em
+      >The file may already exist or here was an error uploading your
+      document..</em
+    >
+  </p>
+</div>
+
+<div class="container">
+  <div class="row my-5 d-flex justify-content-between">
+    <div class="col-sm-6">
+      <h3>Upload</h3>
+      <!-- Content for the first div here -->
+      <form (submit)="onSubmit($event)">
+        <label for="formFile" class="form-label"
+          >Upload your document (.docx or .pdf)</label
+        >
+        <input class="form-control" type="file" id="formFile" required />
+        <p *ngIf="showFileExtenisonErrorAlert" class="text-danger my-2 small">
+          <em>
+            Invalid file extension! Try uploading a file with either .docx or
+            .pdf extension
+          </em>
+        </p>
+
+        <p *ngIf="showServerError" class="text-danger my-2 small">
+          <em> A server error occured while handling file... </em>
+        </p>
+
+        <p *ngIf="fileSizeLimitExceeded" class="text-danger my-2 small">
+          <em> file size limit exceeded... </em>
+        </p>
+
+        <button
+          type="submit"
+          style="border-radius: 10px"
+          class="btn btn-dark btn-sm my-3"
+        >
+          Extract metadata
+        </button>
+      </form>
+
+      <div>
+        <!-- Content for the second div here -->
+        <h3>Metadata</h3>
+        <form #uploadForm="ngForm">
+          <div class="mb-1">
+            <label for="title" class="form-label">Title</label>
+            <input
+              type="text"
+              name="title"
+              class="form-control form-control-sm"
+              id="title"
+              [(ngModel)]="metadata.title"
+              required
+              #title="ngModel"
+            />
+          </div>
+          <div class="mb-1">
+            <label for="filename" class="form-label">Filename</label>
+            <input
+              type="text"
+              class="form-control"
+              name="filename"
+              [(ngModel)]="metadata.filename"
+              required
+              #filename="ngModel"
+            />
+          </div>
+          <div class="mb-1">
+            <label for="creator" class="form-label">Creator</label>
+            <input
+              [(ngModel)]="metadata.creator"
+              name="creator"
+              type="text"
+              class="form-control form-control-sm"
+              id="creator"
+              required
+              #creator="ngModel"
+            />
+          </div>
+
+          <div class="mb-2">
+            <label for="creationDate" class="form-label"
+              >Date of creation</label
+            >
+            <input
+              type="text"
+              name="dateOfCreation"
+              class="form-control form-control-sm"
+              id="creationDate"
+              disabled
+              [(ngModel)]="metadata.dateOfCreation"
+            />
+          </div>
+          <div class="mb-2">
+            <label for="fileSize" class="form-label">File size in KB</label>
+            <input
+              type="text"
+              name="filesize"
+              class="form-control form-control-sm"
+              id="fileSize"
+              disabled
+              [(ngModel)]="metadata.filesize"
+              #filesize="ngModel"
+            />
+          </div>
+          <div class="mb-2">
+            <label for="tags" class="form-label">Tags</label>
+            <input
+              type="text"
+              ngModel
+              name="tags"
+              class="form-control form-control-sm"
+              id="tags"
+              placeholder="tag1;  tag2;.."
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            class="btn btn-primary btn-sm"
+            style="border-radius: 10px"
+            [disabled]="saveButtonIsDisabled"
+            (click)="onUpload(uploadForm)"
+          >
+            Save
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="col-sm-4" style="border-left: 1px solid grey">
+      <!-- Content for the second div here -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h3 class="card-title mb-0">Documents in Archiv</h3>
+        </div>
+        <div class="card-body">
+          <p *ngIf="noContents">
+            No documents in archive yet! Upload a document!
+          </p>
+          <div
+            class="product-file-type"
+            *ngFor="let documentSummary of documentSummaries"
+          >
+            <ul class="list-unstyled">
+              <li class="media">
+                <div
+                  class="row d-flex justify-content-between align-items-start"
+                >
+                  <div class="media-body">
+                    <p class="mb-0">
+                      <b>{{ documentSummary.title }}</b>
+                    </p>
+                    <p>
+                      {{ documentSummary.filename }},
+                      {{ documentSummary.filesize }} KB
+                    </p>
+                  </div>
+                  <div class="col-5">
+                    <button
+                      type="button"
+                      class="btn btn-primary btn-sm"
+                      (click)="downloadFile(documentSummary.filename)"
+                    >
+                      Download
+                    </button>
+                  </div>
+                </div>
+              </li>
+              <hr />
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!--<p>{{ answer }}</p>-->
+
+<!-- Modal -->
+<div
+  class="modal fade"
+  id="downloadModal"
+  tabindex="-1"
+  aria-labelledby="downloadModal"
+  aria-hidden="true"
+>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="exampleModalLabel">
+          Search results for "'{{ searchedKeyword }}'"
+        </h1>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body">
+
+        <p *ngIf="noSearchResults">
+          No documents were found containing the word {{searchedKeyword}}
+        </p>
+        <div
+          class="searchedDocs"
+          *ngFor="let searchedDocumentSummary of searchedDocumentSummaries"
+        >
+          <ul class="list-unstyled">
+            <li class="media">
+              <div class="row d-flex justify-content-between align-items-start">
+                <div class="media-body col-">
+                  <p>
+                    <b>{{ searchedDocumentSummary.title }}</b>
+                  </p>
+                  <p>
+                    {{ searchedDocumentSummary.filename }},
+                    {{ searchedDocumentSummary.filesize }} KB
+                  </p>
+                </div>
+                <div class="col-5">
+                  <button
+                    type="button"
+                    class="btn btn-primary btn-sm"
+                    (click)="downloadFile(searchedDocumentSummary.filename)"
+                  >
+                    Download
+                  </button>
+                </div>
+              </div>
+            </li>
+            <hr />
+          </ul>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
